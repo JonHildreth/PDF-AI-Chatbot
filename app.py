@@ -16,23 +16,28 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
-# --- HIDE STREAMLIT BRANDING ---
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# --- 1. PROFESSIONAL UI CONFIGURATION ---
+# --- 1. PROFESSIONAL UI CONFIGURATION (MUST BE FIRST) ---
 st.set_page_config(page_title="PDF AI Chatbot", page_icon="📄", layout="wide")
 
+# --- 2. COMBINED CUSTOM CSS (Hides branding + adds your styles) ---
 st.markdown("""
     <style>
+    /* HIDE ALL STREAMLIT BRANDING COMPLETELY */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden; display: none !important;}
+    header {visibility: hidden; display: none !important;}
+    #stDecoration {display:none !important;}
+    
+    /* MAIN APP STYLES */
     .stApp { background-color: #0e1117; color: #ffffff; }
-    [data-testid="stSidebar"] { background-image: linear-gradient(#2e3440, #1a1c23); border-right: 1px solid #4c566a; }
+    
+    /* SIDEBAR STYLES */
+    [data-testid="stSidebar"] { 
+        background-image: linear-gradient(#2e3440, #1a1c23); 
+        border-right: 1px solid #4c566a; 
+    }
+
+    /* TITLE STYLES */
     .main-title {
         font-family: 'Helvetica Neue', sans-serif;
         background: -webkit-linear-gradient(#00f2fe, #4facfe);
@@ -40,7 +45,15 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         font-weight: 800; font-size: 3rem; margin-bottom: 0px;
     }
-    .stChatMessage { background-color: #1e2530; border-radius: 15px; border: 1px solid #3b4252; margin-bottom: 10px; }
+
+    /* CHAT BUBBLE STYLES */
+    .stChatMessage { 
+        background-color: #1e2530; 
+        border-radius: 15px; 
+        border: 1px solid #3b4252; 
+        margin-bottom: 10px; 
+    }
+    
     .stTab { background-color: transparent !important; }
     </style>
     """, unsafe_allow_html=True)
