@@ -14,20 +14,45 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.documents import Document
 
+# Load environment variables
 load_dotenv()
 
 # --- 1. PROFESSIONAL UI CONFIGURATION (MUST BE FIRST) ---
-st.set_page_config(page_title="PDF AI Chatbot", page_icon="📄", layout="wide")
+st.set_page_config(
+    page_title="PDF Intelligence AI", 
+    page_icon="📄", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- 2. COMBINED CUSTOM CSS (Hides branding + adds your styles) ---
+# --- 2. COMBINED CUSTOM CSS (Branding Hiding + Professional Styling) ---
 st.markdown("""
     <style>
-    /* HIDE ALL STREAMLIT BRANDING COMPLETELY */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden; display: none !important;}
-    header {visibility: hidden; display: none !important;}
-    #stDecoration {display:none !important;}
+    /* HIDE BRANDING BUT KEEP SIDEBAR TOGGLE VISIBLE */
+    header[data-testid="stHeader"] {
+        background: none !important;
+        color: transparent !important;
+    }
     
+    /* Hide the right-side toolbar (3 dots menu) */
+    div[data-testid="stToolbar"] {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* STYLE THE SIDEBAR TOGGLE BUTTON (The Arrow) */
+    button[data-testid="stSidebarCollapseButton"] {
+        visibility: visible !important;
+        display: flex !important;
+        color: #00f2fe !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 5px !important;
+    }
+
+    footer {visibility: hidden; display: none !important;}
+    #stDecoration {display:none !important;}
+    #MainMenu {visibility: hidden;}
+
     /* MAIN APP STYLES */
     .stApp { background-color: #0e1117; color: #ffffff; }
     
@@ -58,7 +83,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. HELPERS & PDF PROCESSING ---
+# --- 3. HELPERS & PDF PROCESSING ---
 
 def get_pdf_text(pdf_docs):
     all_documents = []
@@ -82,11 +107,19 @@ def get_vectorstore(text_chunks):
     return Chroma.from_documents(documents=text_chunks, embedding=embeddings)
 
 def get_rag_chain(vectorstore):
-    llm = ChatGroq(groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama-3.1-8b-instant", temperature=0)
+    llm = ChatGroq(
+        groq_api_key=os.getenv("GROQ_API_KEY"), 
+        model_name="llama-3.1-8b-instant", 
+        temperature=0
+    )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    # Contextualize question (Memory)
-    context_q_system_prompt = "Given a chat history and the latest user question, formulate a standalone question. Do NOT answer, just reformulate."
+    # Contextualize question (Chat Memory Logic)
+    context_q_system_prompt = (
+        "Given a chat history and the latest user question, "
+        "formulate a standalone question which can be understood "
+        "without the chat history. Do NOT answer, just reformulate."
+    )
     context_q_prompt = ChatPromptTemplate.from_messages([
         ("system", context_q_system_prompt),
         MessagesPlaceholder("chat_history"),
@@ -94,10 +127,10 @@ def get_rag_chain(vectorstore):
     ])
     history_aware_retriever = create_history_aware_retriever(llm, retriever, context_q_prompt)
 
-    # Answer prompt
+    # Answer generation prompt
     system_prompt = (
-        "You are a professional assistant. Use the provided context to answer the question. "
-        "If unsure, say you don't know. Always cite the Source File and Page Number at the end.\n\n"
+        "You are a professional technical assistant. Use the provided context to answer the question. "
+        "If unsure, say you don't know. Always cite the Source File and Page Number at the end of your response.\n\n"
         "Context: {context}"
     )
     qa_prompt = ChatPromptTemplate.from_messages([
@@ -106,15 +139,16 @@ def get_rag_chain(vectorstore):
         ("human", "{input}"),
     ])
     
-    return create_retrieval_chain(history_aware_retriever, create_stuff_documents_chain(llm, qa_prompt))
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+    return create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-# --- 3. SESSION STATE INITIALIZATION ---
+# --- 4. SESSION STATE INITIALIZATION ---
 if "vectorstore" not in st.session_state: st.session_state.vectorstore = None
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
-# --- 4. SIDEBAR (BRANDING & UPLOAD) ---
+# --- 5. SIDEBAR (PORTFOLIO BRANDING & CONTROLS) ---
 with st.sidebar:
-    st.markdown("### 👨‍💻 Jon's Portfolio")
+    st.markdown("### 👨‍💻 Portfolio Project")
     st.markdown("""
         [![GitHub](https://img.shields.io/badge/GitHub-Profile-blue?style=flat&logo=github)](https://github.com/JonHildreth)
         [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/jonathan-hildreth-linked)
@@ -130,104 +164,104 @@ with st.sidebar:
                 raw_docs = get_pdf_text(uploaded_files)
                 chunks = get_text_chunks(raw_docs)
                 st.session_state.vectorstore = get_vectorstore(chunks)
-                st.success(f"Indexed {len(uploaded_files)} files!")
+                st.success(f"Successfully indexed {len(uploaded_files)} files!")
         else:
-            st.error("Upload a PDF first.")
+            st.error("Please upload at least one PDF.")
 
-    # Suggested Questions Logic
     if st.session_state.vectorstore:
         st.divider()
-        if st.button("💡 Suggest Questions"):
-            temp_llm = ChatGroq(groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama-3.1-8b-instant")
-            sample = st.session_state.vectorstore.similarity_search("important", k=1)
-            res = temp_llm.invoke(f"Suggest 3 short questions based on this: {sample[0].page_content[:500]}")
-            st.info(res.content)
+        st.subheader("💡 Need an idea?")
+        if st.button("Suggest Questions"):
+            with st.spinner("Brainstorming..."):
+                temp_llm = ChatGroq(groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama-3.1-8b-instant")
+                sample = st.session_state.vectorstore.similarity_search("important information", k=1)
+                res = temp_llm.invoke(f"Suggest 3 short, interesting questions based on this: {sample[0].page_content[:500]}")
+                st.info(res.content)
 
     st.divider()
-    if st.button("🗑️ Clear Chat"):
+    if st.button("🗑️ Clear Chat History"):
         st.session_state.chat_history = []
         st.rerun()
 
-    # Download Log
     if st.session_state.chat_history:
         log = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in st.session_state.chat_history])
-        st.download_button("💾 Download Log", log, "chat_log.txt")
+        st.download_button("💾 Download Chat Log", log, "chat_history.txt")
 
-# --- 5. MAIN CONTENT AREA ---
-st.markdown('<h1 class="main-title">📄 PDF AI Chatbot</h1>', unsafe_allow_html=True)
+# --- 6. MAIN CONTENT AREA ---
+st.markdown('<h1 class="main-title">📄 PDF Intelligence AI</h1>', unsafe_allow_html=True)
 
 if st.session_state.vectorstore is None:
+    # PRO LANDING PAGE
     st.markdown("""
         <div style="background-color: #1e2530; padding: 25px; border-radius: 12px; border: 1px solid #3b4252;">
             <h3>Welcome to your Technical Document Assistant</h3>
-            <p>Upload multi-page PDFs to interact with them using Retrieval-Augmented Generation (RAG).</p>
+            <p>This is a professional RAG application designed to query complex multi-page PDF documents.</p>
             <hr style="border-color: #4c566a;">
-            <b>🛠️ Technical Pipeline:</b>
+            <b>🛠️ Project Architecture:</b>
             <ul>
-                <li><b>Engine:</b> Llama 3.1-8B Instant (Groq Inference)</li>
-                <li><b>Database:</b> ChromaDB (Vector Embeddings)</li>
-                <li><b>Context Window:</b> Full chat history awareness</li>
+                <li><b>Engine:</b> Llama 3.1-8B Instant (Groq Cloud)</li>
+                <li><b>Database:</b> ChromaDB (Local Vector Store)</li>
+                <li><b>Embeddings:</b> HuggingFace (MiniLM-L6-v2)</li>
+                <li><b>Memory:</b> Full conversation history awareness</li>
             </ul>
+            <p><i>👈 Upload your PDF files in the sidebar to begin.</i></p>
         </div>
     """, unsafe_allow_html=True)
 else:
-    # 1. Create the Tabs
     tab1, tab2 = st.tabs(["💬 AI Chat Assistant", "📊 Pipeline Analytics"])
 
-    # 2. Display the History inside Tab 1
     with tab1:
+        # Display Message History
         for message in st.session_state.chat_history:
             avatar = "👤" if message["role"] == "user" else "🤖"
             with st.chat_message(message["role"], avatar=avatar):
                 st.markdown(message["content"])
 
-    # 3. Display the Stats inside Tab 2
     with tab2:
-        st.subheader("🛠️ Vector Database Metrics")
+        st.subheader("🛠️ Vector Database Performance")
         c1, c2, c3 = st.columns(3)
         total_chunks = len(st.session_state.vectorstore.get()['ids'])
         c1.metric("Total Files", len(uploaded_files))
-        c2.metric("Total Vector Chunks", total_chunks)
-        c3.metric("Embeddings", "HuggingFace/all-MiniLM")
+        c2.metric("Total Chunks", total_chunks)
+        c3.metric("Embeddings", "MiniLM-L6-v2")
         
-        st.write("**Processed Files:**")
+        st.write("**Processed Files Index:**")
         for f in uploaded_files:
             st.code(f"📄 {f.name} - {f.size//1024} KB")
 
-    # --- 4. INPUT LOGIC (MOVED OUTSIDE OF TABS) ---
-    # By placing this here, it will always stay at the bottom of the screen.
+    # --- CHAT INPUT (Anchored to bottom) ---
     if user_query := st.chat_input("Ask a question about your documents..."):
-        
-        # We tell Streamlit to render the new messages inside Tab 1 specifically
         with tab1:
-            # Show User Question
             with st.chat_message("user", avatar="👤"):
                 st.markdown(user_query)
             
-            # Generate Assistant Response
             with st.chat_message("assistant", avatar="🤖"):
                 start_time = time.perf_counter()
-                with st.spinner("Consulting Vector Store..."):
+                with st.spinner("Searching..."):
                     chain = get_rag_chain(st.session_state.vectorstore)
-                    response = chain.invoke({"input": user_query, "chat_history": st.session_state.chat_history})
+                    response = chain.invoke({
+                        "input": user_query, 
+                        "chat_history": st.session_state.chat_history
+                    })
                     answer = response["answer"]
                 
+                # Metrics
                 st.caption(f"🚀 Response generated in {time.perf_counter() - start_time:.2f}s")
                 
-                # Typewriter streaming
+                # Typewriter Streaming
                 def stream_text():
                     for word in answer.split(" "):
                         yield word + " "
                         time.sleep(0.04)
                 st.write_stream(stream_text)
 
-                with st.expander("🔍 View Context Sources"):
+                # Source Transparency
+                with st.expander("🔍 View Source Evidence"):
                     for doc in response["context"]:
                         st.write(f"**From: {doc.metadata['source']} (Page {doc.metadata['page']})**")
                         st.info(doc.page_content)
-        
-        # 5. Save to history and force a rerun
-        # Rerunning ensures the chat renders cleanly back in the history loop above
-        st.session_state.chat_history.append({"role": "user", "content": user_query})
-        st.session_state.chat_history.append({"role": "assistant", "content": answer})
-        st.rerun()
+            
+            # Save and Refresh
+            st.session_state.chat_history.append({"role": "user", "content": user_query})
+            st.session_state.chat_history.append({"role": "assistant", "content": answer})
+            st.rerun()
