@@ -16,6 +16,16 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
+# --- HIDE STREAMLIT BRANDING ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # --- 1. PROFESSIONAL UI CONFIGURATION ---
 st.set_page_config(page_title="PDF AI Chatbot", page_icon="📄", layout="wide")
 
