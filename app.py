@@ -91,7 +91,7 @@ if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
 # --- 4. SIDEBAR (BRANDING & UPLOAD) ---
 with st.sidebar:
-    st.markdown("### 👨‍💻 Portfolio Project")
+    st.markdown("### 👨‍💻 Jon's Portfolio")
     st.markdown("""
         [![GitHub](https://img.shields.io/badge/GitHub-Profile-blue?style=flat&logo=github)](https://github.com/JonHildreth)
         [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/jonathan-hildreth-linked)
