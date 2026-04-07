@@ -17,7 +17,7 @@ from langchain_core.documents import Document
 load_dotenv()
 
 # --- 1. PROFESSIONAL UI CONFIGURATION ---
-st.set_page_config(page_title="PDF Intelligence AI", page_icon="📄", layout="wide")
+st.set_page_config(page_title="PDF AI Chatbot", page_icon="📄", layout="wide")
 
 st.markdown("""
     <style>
@@ -93,8 +93,8 @@ if "chat_history" not in st.session_state: st.session_state.chat_history = []
 with st.sidebar:
     st.markdown("### 👨‍💻 Portfolio Project")
     st.markdown("""
-        [![GitHub](https://img.shields.io/badge/GitHub-Profile-blue?style=flat&logo=github)](https://github.com/yourusername)
-        [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://linkedin.com/in/yourusername)
+        [![GitHub](https://img.shields.io/badge/GitHub-Profile-blue?style=flat&logo=github)](https://github.com/JonHildreth)
+        [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/jonathan-hildreth-linked)
     """)
     st.divider()
     
@@ -131,7 +131,7 @@ with st.sidebar:
         st.download_button("💾 Download Log", log, "chat_log.txt")
 
 # --- 5. MAIN CONTENT AREA ---
-st.markdown('<h1 class="main-title">📄 PDF Intelligence AI</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">📄 PDF AI Chatbot</h1>', unsafe_allow_html=True)
 
 if st.session_state.vectorstore is None:
     st.markdown("""
@@ -148,47 +148,17 @@ if st.session_state.vectorstore is None:
         </div>
     """, unsafe_allow_html=True)
 else:
+    # 1. Create the Tabs
     tab1, tab2 = st.tabs(["💬 AI Chat Assistant", "📊 Pipeline Analytics"])
 
+    # 2. Display the History inside Tab 1
     with tab1:
-        # Display History
         for message in st.session_state.chat_history:
             avatar = "👤" if message["role"] == "user" else "🤖"
             with st.chat_message(message["role"], avatar=avatar):
                 st.markdown(message["content"])
 
-        # Input Logic
-        if user_query := st.chat_input("Ask a question about your documents..."):
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(user_query)
-            
-            with st.chat_message("assistant", avatar="🤖"):
-                start_time = time.perf_counter()
-                with st.spinner("Consulting Vector Store..."):
-                    chain = get_rag_chain(st.session_state.vectorstore)
-                    response = chain.invoke({"input": user_query, "chat_history": st.session_state.chat_history})
-                    answer = response["answer"]
-                
-                # Metrics and UI feedback
-                st.caption(f"🚀 Response generated in {time.perf_counter() - start_time:.2f}s")
-                
-                # Typewriter streaming
-                def stream_text():
-                    for word in answer.split(" "):
-                        yield word + " "
-                        time.sleep(0.04)
-                st.write_stream(stream_text)
-
-                # Evidence Expander
-                with st.expander("🔍 View Context Sources"):
-                    for doc in response["context"]:
-                        st.write(f"**From: {doc.metadata['source']} (Page {doc.metadata['page']})**")
-                        st.info(doc.page_content)
-            
-            # Save history
-            st.session_state.chat_history.append({"role": "user", "content": user_query})
-            st.session_state.chat_history.append({"role": "assistant", "content": answer})
-
+    # 3. Display the Stats inside Tab 2
     with tab2:
         st.subheader("🛠️ Vector Database Metrics")
         c1, c2, c3 = st.columns(3)
@@ -200,3 +170,41 @@ else:
         st.write("**Processed Files:**")
         for f in uploaded_files:
             st.code(f"📄 {f.name} - {f.size//1024} KB")
+
+    # --- 4. INPUT LOGIC (MOVED OUTSIDE OF TABS) ---
+    # By placing this here, it will always stay at the bottom of the screen.
+    if user_query := st.chat_input("Ask a question about your documents..."):
+        
+        # We tell Streamlit to render the new messages inside Tab 1 specifically
+        with tab1:
+            # Show User Question
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(user_query)
+            
+            # Generate Assistant Response
+            with st.chat_message("assistant", avatar="🤖"):
+                start_time = time.perf_counter()
+                with st.spinner("Consulting Vector Store..."):
+                    chain = get_rag_chain(st.session_state.vectorstore)
+                    response = chain.invoke({"input": user_query, "chat_history": st.session_state.chat_history})
+                    answer = response["answer"]
+                
+                st.caption(f"🚀 Response generated in {time.perf_counter() - start_time:.2f}s")
+                
+                # Typewriter streaming
+                def stream_text():
+                    for word in answer.split(" "):
+                        yield word + " "
+                        time.sleep(0.04)
+                st.write_stream(stream_text)
+
+                with st.expander("🔍 View Context Sources"):
+                    for doc in response["context"]:
+                        st.write(f"**From: {doc.metadata['source']} (Page {doc.metadata['page']})**")
+                        st.info(doc.page_content)
+        
+        # 5. Save to history and force a rerun
+        # Rerunning ensures the chat renders cleanly back in the history loop above
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
+        st.session_state.chat_history.append({"role": "assistant", "content": answer})
+        st.rerun()
