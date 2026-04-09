@@ -1,11 +1,14 @@
 streamlit
 python-dotenv
 PyPDF2
+langchain==0.2.14
+langchain-community==0.2.12
+langchain-core==0.2.33
 langchain-text-splitters
 langchain-huggingface
-langchain-community
 langchain-groq
-langchain
 chromadb==0.5.3
 protobuf==4.25.3
 sentence-transformers
+
+# rebuild 1
