@@ -84,7 +84,12 @@ def get_text_chunks(documents):
 
 def get_vectorstore(text_chunks):
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return Chroma.from_documents(documents=text_chunks, embedding=embeddings)
+    # Using a unique collection name helps prevent conflicts in shared memory
+    return Chroma.from_documents(
+        documents=text_chunks, 
+        embedding=embeddings,
+        collection_name="my_pdf_collection"
+    )
 
 def get_rag_chain(vectorstore):
     llm = ChatGroq(
