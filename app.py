@@ -17,42 +17,17 @@ from langchain_core.documents import Document
 # Load environment variables
 load_dotenv()
 
-# --- 1. PROFESSIONAL UI CONFIGURATION (MUST BE FIRST) ---
+# --- 1. UI CONFIGURATION (MUST BE FIRST) ---
 st.set_page_config(
-    page_title="PDF Intelligence AI", 
+    page_title="PDF AI Chatbot", 
     page_icon="📄", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded" # This ensures it starts open
 )
 
-# --- 2. COMBINED CUSTOM CSS (Branding Hiding + Professional Styling) ---
+# --- 2. CLEAN CUSTOM CSS (Restores Native Sidebar Controls) ---
 st.markdown("""
     <style>
-    /* HIDE BRANDING BUT KEEP SIDEBAR TOGGLE VISIBLE */
-    header[data-testid="stHeader"] {
-        background: none !important;
-        color: transparent !important;
-    }
-    
-    /* Hide the right-side toolbar (3 dots menu) */
-    div[data-testid="stToolbar"] {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* STYLE THE SIDEBAR TOGGLE BUTTON (The Arrow) */
-    button[data-testid="stSidebarCollapseButton"] {
-        visibility: visible !important;
-        display: flex !important;
-        color: #00f2fe !important;
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border-radius: 5px !important;
-    }
-
-    footer {visibility: hidden; display: none !important;}
-    #stDecoration {display:none !important;}
-    #MainMenu {visibility: hidden;}
-
     /* MAIN APP STYLES */
     .stApp { background-color: #0e1117; color: #ffffff; }
     
@@ -68,7 +43,7 @@ st.markdown("""
         background: -webkit-linear-gradient(#00f2fe, #4facfe);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-weight: 800; font-size: 3rem; margin-bottom: 0px;
+        font-weight: 800; font-size: 3rem; margin-bottom: 20px;
     }
 
     /* CHAT BUBBLE STYLES */
@@ -79,6 +54,11 @@ st.markdown("""
         margin-bottom: 10px; 
     }
     
+    /* Ensure the sidebar toggle button is visible against the dark background */
+    button[data-testid="stSidebarCollapseButton"] {
+        color: #4facfe !important;
+    }
+
     .stTab { background-color: transparent !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -114,7 +94,6 @@ def get_rag_chain(vectorstore):
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    # Contextualize question (Chat Memory Logic)
     context_q_system_prompt = (
         "Given a chat history and the latest user question, "
         "formulate a standalone question which can be understood "
@@ -127,7 +106,6 @@ def get_rag_chain(vectorstore):
     ])
     history_aware_retriever = create_history_aware_retriever(llm, retriever, context_q_prompt)
 
-    # Answer generation prompt
     system_prompt = (
         "You are a professional technical assistant. Use the provided context to answer the question. "
         "If unsure, say you don't know. Always cite the Source File and Page Number at the end of your response.\n\n"
@@ -188,7 +166,7 @@ with st.sidebar:
         st.download_button("💾 Download Chat Log", log, "chat_history.txt")
 
 # --- 6. MAIN CONTENT AREA ---
-st.markdown('<h1 class="main-title">📄 PDF Intelligence AI</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">📄 PDF AI Chatbot</h1>', unsafe_allow_html=True)
 
 if st.session_state.vectorstore is None:
     # PRO LANDING PAGE
