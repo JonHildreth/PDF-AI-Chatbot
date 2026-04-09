@@ -4,18 +4,21 @@ import os
 import time
 from PyPDF2 import PdfReader
 
-# LangChain & AI Imports
+# --- LangChain & AI Imports ---
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+
+# These specific paths are required to avoid import errors in newer LangChain versions
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
+from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.documents import Document
 
-# Load environment variables
-load_dotenv()
+# Load environme
 
 # --- 1. UI CONFIGURATION (MUST BE FIRST) ---
 st.set_page_config(
