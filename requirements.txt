@@ -10,5 +10,8 @@ langchain-groq
 chromadb==0.5.3
 protobuf==4.25.3
 sentence-transformers
+pytesseract
+pdf2image
+Pillow
 
 # rebuild 1

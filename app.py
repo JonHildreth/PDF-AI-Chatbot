@@ -3,8 +3,14 @@ from dotenv import load_dotenv
 import os
 import time
 from PyPDF2 import PdfReader
+import pytesseract
+from pdf2image import convert_from_bytes
+from PIL import Image
+import io
+
 
 # --- LangChain & AI Imports ---
+pytesseract.pytesseract.tesseract_cmd = r'C:\Users\jonat\Downloads\tesseract.exe'
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -59,10 +65,41 @@ st.markdown("""
 
 def get_pdf_text(pdf_docs):
     all_documents = []
+    
+    TESSERACT_PATH = r'C:\Users\jonat\Downloads\tesseract.exe'
+    POPPLER_PATH = r'C:\Users\jonat\Downloads\poppler\poppler-24.02.0\Library\bin' 
+
+    if os.name == 'nt':
+        pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+
     for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
+        pdf_bytes = pdf.read()
+        pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+        
         for i, page in enumerate(pdf_reader.pages):
+            # 1. Try to extract digital text first
             text = page.extract_text()
+            
+            # 2. If no text found (scanned PDF), use OCR
+            if not text or len(text.strip()) < 10:
+                try:
+                    # On Windows, we must provide the poppler_path
+                    # On Streamlit Cloud (Linux), we leave it empty
+                    kwargs = {'poppler_path': POPPLER_PATH} if os.name == 'nt' else {}
+                    
+                    images = convert_from_bytes(
+                        pdf_bytes, 
+                        first_page=i+1, 
+                        last_page=i+1, 
+                        **kwargs
+                    )
+                    
+                    if images:
+                        text = pytesseract.image_to_string(images[0])
+                except Exception as e:
+                    st.warning(f"OCR failed on {pdf.name} pg {i+1}: {e}")
+                    text = ""
+            
             if text:
                 all_documents.append(Document(
                     page_content=text, 
@@ -87,11 +124,19 @@ def get_vectorstore(text_chunks):
     )
 
 def get_rag_chain(vectorstore):
-    llm = ChatGroq(
-        groq_api_key=os.getenv("GROQ_API_KEY"), 
-        model_name="llama-3.1-8b-instant", 
-        temperature=0
-    )
+    # Safe check: Look at .env first, then try secrets
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except (KeyError, FileNotFoundError, st.errors.StreamlitSecretNotFoundError):
+            api_key = None
+
+    if not api_key:
+        st.error("Missing GROQ_API_KEY. Please check your .env file or Streamlit Secrets.")
+        st.stop()
+
+    llm = ChatGroq(groq_api_key=api_key, model_name="llama-3.1-8b-instant", temperature=0)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     context_q_system_prompt = (
@@ -148,19 +193,24 @@ with st.sidebar:
         else:
             st.error("Please upload at least one PDF.")
 
-    if st.session_state.vectorstore:
-        st.divider()
-        st.subheader("💡 Need an idea?")
-        if st.button("Suggest Questions"):
-            with st.spinner("Brainstorming..."):
-                try:
-                    temp_llm = ChatGroq(groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama-3.1-8b-instant")
-                    sample = st.session_state.vectorstore.similarity_search(" ", k=1)
-                    if sample:
-                        res = temp_llm.invoke([("human", f"Suggest 3 short questions based on: {sample[0].page_content[:500]}")])
-                        st.info(res.content)
-                except Exception as e:
-                    st.error(f"Groq API Error: {e}")
+    if st.button("💡 Suggest Questions"):
+                with st.spinner("Brainstorming..."):
+                    try: # <--- ADD THIS LINE
+                        # Safe check again
+                        api_key = os.getenv("GROQ_API_KEY")
+                        if not api_key:
+                            try:
+                                api_key = st.secrets["GROQ_API_KEY"]
+                            except:
+                                api_key = None
+                        
+                        temp_llm = ChatGroq(groq_api_key=api_key, model_name="llama-3.1-8b-instant")
+                        sample = st.session_state.vectorstore.similarity_search(" ", k=1)
+                        if sample:
+                            res = temp_llm.invoke([("human", f"Suggest 3 short questions based on: {sample[0].page_content[:500]}")])
+                            st.info(res.content)
+                    except Exception as e: # This now correctly pairs with the 'try' on line 182
+                        st.error(f"Groq API Error: {e}")
 
     st.divider()
     if st.button("🗑️ Clear Chat History"):
@@ -172,20 +222,21 @@ st.markdown('<h1 class="main-title">📄 PDF AI Chatbot</h1>', unsafe_allow_html
 
 if st.session_state.vectorstore is None:
     st.markdown("""
-        <div style="background-color: #1e2530; padding: 25px; border-radius: 12px; border: 1px solid #3b4252;">
-            <h3>Welcome to your Technical Document Assistant</h3>
-            <p>This is a professional RAG application designed to query complex multi-page PDF documents.</p>
-            <hr style="border-color: #4c566a;">
-            <b>🛠️ Project Architecture:</b>
-            <ul>
-                <li><b>Engine:</b> Llama 3.1-8B Instant (Groq Cloud)</li>
-                <li><b>Database:</b> ChromaDB (Local Vector Store)</li>
-                <li><b>Embeddings:</b> HuggingFace (MiniLM-L6-v2)</li>
-                <li><b>Memory:</b> Full conversation history awareness</li>
-            </ul>
-            <p><i>👈 Upload your PDF files in the sidebar to begin.</i></p>
-        </div>
-    """, unsafe_allow_html=True)
+            <div style="background-color: #1e2530; padding: 25px; border-radius: 12px; border: 1px solid #3b4252;">
+                <h3>Welcome to your Technical Document Assistant</h3>
+                <p>This is a professional RAG application designed to query complex multi-page PDF documents.</p>
+                <hr style="border-color: #4c566a;">
+                <b>🛠️ Project Architecture:</b>
+                <ul>
+                    <li><b>Engine:</b> Llama 3.1-8B Instant (Groq Cloud)</li>
+                    <li><b>OCR Engine:</b> Tesseract OCR (Support for scanned documents/images)</li>
+                    <li><b>Database:</b> ChromaDB (Local Vector Store)</li>
+                    <li><b>Embeddings:</b> HuggingFace (MiniLM-L6-v2)</li>
+                    <li><b>Memory:</b> Full conversation history awareness</li>
+                </ul>
+                <p><i>👈 Upload your PDF files in the sidebar to begin.</i></p>
+            </div>
+        """, unsafe_allow_html=True)
 else:
     tab1, tab2 = st.tabs(["💬 AI Chat Assistant", "📊 Pipeline Analytics"])
 
