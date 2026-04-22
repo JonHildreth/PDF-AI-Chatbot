@@ -66,15 +66,16 @@ st.markdown("""
 def get_pdf_text(pdf_docs):
     all_documents = []
     
-    # --- SMART PATH HANDLING ---
-    if os.name == 'nt':
+    if os.name == 'nt': 
         TESSERACT_PATH = r'C:\Users\jonat\Downloads\tesseract.exe'
         POPPLER_PATH = r'C:\Users\jonat\Downloads\poppler\poppler-24.02.0\Library\bin'
-        pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+        
+        if os.path.exists(TESSERACT_PATH):
+            pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
     else:
-
-        TESSERACT_PATH = None
-        POPPLER_PATH = None
+        # On the Web (Linux), we DO NOT set tesseract_cmd. 
+        # Linux finds it automatically via the packages.txt installation.
+        POPPLER_PATH = None 
 
     for pdf in pdf_docs:
         pdf_bytes = pdf.read()
@@ -94,6 +95,7 @@ def get_pdf_text(pdf_docs):
                     if images:
                         text = pytesseract.image_to_string(images[0])
                 except Exception as e:
+
                     st.warning(f"OCR failed on {pdf.name} pg {i+1}: {e}")
                     text = ""
 
