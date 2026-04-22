@@ -1,20 +1,14 @@
 streamlit
 python-dotenv
 PyPDF2
-langchain==0.2.14
-langchain-community==0.2.12
-langchain-core==0.2.33
+langchain==0.3.14
+langchain-community
+langchain-core
 langchain-text-splitters
 langchain-huggingface
 langchain-groq
-chromadb==0.5.3
-protobuf==4.25.3
+chromadb
 sentence-transformers
 pytesseract
 pdf2image
 Pillow
-tesseract-ocr
-libtesseract-dev
-poppler-utils
-
-# rebuild 1
