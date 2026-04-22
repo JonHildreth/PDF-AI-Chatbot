@@ -12,3 +12,4 @@ sentence-transformers
 pytesseract
 pdf2image
 Pillow
+protobuf>=4.21.0
