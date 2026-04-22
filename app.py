@@ -66,40 +66,37 @@ st.markdown("""
 def get_pdf_text(pdf_docs):
     all_documents = []
     
-    TESSERACT_PATH = r'C:\Users\jonat\Downloads\tesseract.exe'
-    POPPLER_PATH = r'C:\Users\jonat\Downloads\poppler\poppler-24.02.0\Library\bin' 
-
+    # --- SMART PATH HANDLING ---
     if os.name == 'nt':
+        TESSERACT_PATH = r'C:\Users\jonat\Downloads\tesseract.exe'
+        POPPLER_PATH = r'C:\Users\jonat\Downloads\poppler\poppler-24.02.0\Library\bin'
         pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+    else:
+
+        TESSERACT_PATH = None
+        POPPLER_PATH = None
 
     for pdf in pdf_docs:
         pdf_bytes = pdf.read()
         pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
         
         for i, page in enumerate(pdf_reader.pages):
-            # 1. Try to extract digital text first
             text = page.extract_text()
             
-            # 2. If no text found (scanned PDF), use OCR
             if not text or len(text.strip()) < 10:
                 try:
-                    # On Windows, we must provide the poppler_path
-                    # On Streamlit Cloud (Linux), we leave it empty
+                    # Only provide poppler_path if we are on Windows
                     kwargs = {'poppler_path': POPPLER_PATH} if os.name == 'nt' else {}
                     
                     images = convert_from_bytes(
-                        pdf_bytes, 
-                        first_page=i+1, 
-                        last_page=i+1, 
-                        **kwargs
+                        pdf_bytes, first_page=i+1, last_page=i+1, **kwargs
                     )
-                    
                     if images:
                         text = pytesseract.image_to_string(images[0])
                 except Exception as e:
                     st.warning(f"OCR failed on {pdf.name} pg {i+1}: {e}")
                     text = ""
-            
+
             if text:
                 all_documents.append(Document(
                     page_content=text, 

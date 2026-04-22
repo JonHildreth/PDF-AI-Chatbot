@@ -13,5 +13,8 @@ sentence-transformers
 pytesseract
 pdf2image
 Pillow
+tesseract-ocr
+libtesseract-dev
+poppler-utils
 
 # rebuild 1
