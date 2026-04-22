@@ -10,7 +10,6 @@ import io
 
 
 # --- LangChain & AI Imports ---
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\jonat\Downloads\tesseract.exe'
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -66,18 +65,21 @@ st.markdown("""
 def get_pdf_text(pdf_docs):
     all_documents = []
     
-    if os.name == 'nt': 
+    # --- SMART PATH HANDLING ---
+    if os.name == 'nt':
         TESSERACT_PATH = r'C:\Users\jonat\Downloads\tesseract.exe'
         POPPLER_PATH = r'C:\Users\jonat\Downloads\poppler\poppler-24.02.0\Library\bin'
         
+
         if os.path.exists(TESSERACT_PATH):
             pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
     else:
-        # On the Web (Linux), we DO NOT set tesseract_cmd. 
-        # Linux finds it automatically via the packages.txt installation.
+
         POPPLER_PATH = None 
 
     for pdf in pdf_docs:
+        # Reset the file pointer
+        pdf.seek(0)
         pdf_bytes = pdf.read()
         pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
         
@@ -86,7 +88,7 @@ def get_pdf_text(pdf_docs):
             
             if not text or len(text.strip()) < 10:
                 try:
-                    # Only provide poppler_path if we are on Windows
+                    # Only use the poppler_path on Windows
                     kwargs = {'poppler_path': POPPLER_PATH} if os.name == 'nt' else {}
                     
                     images = convert_from_bytes(
@@ -95,8 +97,7 @@ def get_pdf_text(pdf_docs):
                     if images:
                         text = pytesseract.image_to_string(images[0])
                 except Exception as e:
-
-                    st.warning(f"OCR failed on {pdf.name} pg {i+1}: {e}")
+                    st.warning(f"OCR Engine Message: {e}")
                     text = ""
 
             if text:
