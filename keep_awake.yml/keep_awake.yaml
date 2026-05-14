@@ -1,0 +1,15 @@
+name: Keep App Awake
+
+on:
+  schedule:
+    # This runs every 30 minutes, which is fast enough to stop the sleep timer
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # This adds a "Run Workflow" button so you can test it manually
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          curl -I -L -A "Mozilla/5.0" https://pdf-ai-chatbot-ay2we7dxosyp7klbjs5u4x.streamlit.app
