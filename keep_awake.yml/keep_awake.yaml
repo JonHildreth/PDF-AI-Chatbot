@@ -2,9 +2,9 @@ name: Keep App Awake
 
 on:
   schedule:
-    # This runs every 30 minutes, which is fast enough to stop the sleep timer
+
     - cron: '*/30 * * * *'
-  workflow_dispatch: # This adds a "Run Workflow" button so you can test it manually
+  workflow_dispatch:
 
 jobs:
   ping:
