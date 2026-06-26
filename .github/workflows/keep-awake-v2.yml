@@ -1,7 +1,6 @@
 name: Keep App Awake V2
 on:
   schedule:
-    # This runs every 10 hours to stay ahead of the 12-hour timeout
     - cron: '0 */10 * * *'
   workflow_dispatch: # Allows you to run it manually
 
