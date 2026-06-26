@@ -1,0 +1,20 @@
+name: Keep App Awake V2
+on:
+  schedule:
+    # This runs every 10 hours to stay ahead of the 12-hour timeout
+    - cron: '0 */10 * * *'
+  workflow_dispatch: # Allows you to run it manually
+
+jobs:
+  wake-up:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keepalive Commit
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit --allow-empty -m "Keep-alive ping"
+          git push
