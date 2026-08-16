@@ -16,4 +16,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit --allow-empty -m "Keep-alive ping"
+          git pull --rebase origin main
           git push
